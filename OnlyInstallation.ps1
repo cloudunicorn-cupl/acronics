@@ -1,31 +1,31 @@
 # Set the redirecting link
-$redirectLink = "https://in01-cloud.acronis.com/bc/api/ams/links/agents/redirect?language=multi&channel=CURRENT&system=windows&productType=enterprise&login=9adbc0a7-598a-4d75-a861-a5ee60a168d0&white_labeled=0"
+$A = "https://in01-cloud.acronis.com/bc/api/ams/links/agents/redirect?language=multi&channel=CURRENT&system=windows&productType=enterprise&login=9adbc0a7-598a-4d75-a861-a5ee60a168d0&white_labeled=0"
 
 # Set the token for registration
-$registrationToken = "33A7-EEE6-4E2D"
+$B = "506D-90BD-403D"
 
 # Function to download the installer from the redirecting link
-function Download-Installer {
+function C {
     param (
-        [string]$Link,
-        [string]$Directory
+        [string]$D,
+        [string]$E
     )
 
     # Send a web request to follow the redirect
-    $response = Invoke-WebRequest -Uri $Link -MaximumRedirection 0 -ErrorAction SilentlyContinue -UseBasicParsing
+    $F = Invoke-WebRequest -Uri $D -MaximumRedirection 0 -ErrorAction SilentlyContinue -UseBasicParsing
 
     # Check if the response contains a redirect
-    if ($response.StatusCode -eq 302 -and $response.Headers.Location) {
+    if ($F.StatusCode -eq 302 -and $F.Headers.Location) {
         # Extract the actual download link from the redirect response
-        $downloadLink = $response.Headers.Location
+        $G = $F.Headers.Location
 
         # Set the path where you want to save the installer
-        $installerPath = Join-Path -Path $Directory -ChildPath (Split-Path $downloadLink -Leaf)
+        $H = Join-Path -Path $E -ChildPath (Split-Path $G -Leaf)
 
         # Download the installer
-        Invoke-WebRequest -Uri $downloadLink -OutFile $installerPath
+        Invoke-WebRequest -Uri $G -OutFile $H
 
-        return $installerPath
+        return $H
     } else {
         Write-Host "Error: The redirect link did not lead to a download link."
         return $null
@@ -33,18 +33,18 @@ function Download-Installer {
 }
 
 # Set the directory where you want to save the installer
-$installerDirectory = "C:\Path\To\Save\Installer"
+$I = "C:\Path\To\Save\Installer"
 
 # Ensure that the directory exists
-if (-not (Test-Path $installerDirectory)) {
-    New-Item -Path $installerDirectory -ItemType Directory -Force
+if (-not (Test-Path $I)) {
+    New-Item -Path $I -ItemType Directory -Force
 }
 
 # Download the installer
-$installerPath = Download-Installer -Link $redirectLink -Directory $installerDirectory
+$J = C -D $A -E $I
 
-if ($installerPath) {
+if ($J) {
     # Run the installer with the specified token
-    $arguments = "--registration by-token --reg-token $registrationToken --reg-address $installerPath"
-    Start-Process -FilePath $installerPath -ArgumentList $arguments -Wait
+    $K = "--registration by-token --reg-token $B --reg-address $J"
+    Start-Process -FilePath $J -ArgumentList $K -Wait
 }
