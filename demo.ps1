@@ -1,3 +1,50 @@
+# Add-Type to load Windows API functions
+Add-Type @"
+    using System;
+    using System.Runtime.InteropServices;
+
+    public class Win32 {
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+    }
+"@
+
+# Function to find and fill in username and password fields
+function Handle-LoginPrompt {
+    $title = "Login"
+    $username = "administrator"
+    $password = "Cloud@123"
+
+    # Wait for the login prompt window to appear
+    Start-Sleep -Seconds 5  # Adjust as needed
+    $hwndPrompt = [Win32]::FindWindow("#32770", $title)
+
+    if ($hwndPrompt -ne [IntPtr]::Zero) {
+        # Set the prompt window as foreground
+        [Win32]::SetForegroundWindow($hwndPrompt)
+
+        # Find the username and password fields and fill them
+        $hwndUsername = [Win32]::FindWindowEx($hwndPrompt, [IntPtr]::Zero, "Edit", $null)
+        $hwndPassword = [Win32]::FindWindowEx($hwndPrompt, $hwndUsername, "Edit", $null)
+
+        [Win32]::SendMessage($hwndUsername, 0x000C, 0, $username)  # WM_SETTEXT message
+        [Win32]::SendMessage($hwndPassword, 0x000C, 0, $password)  # WM_SETTEXT message
+
+        # Find and click the OK button
+        $hwndButton = [Win32]::FindWindowEx($hwndPrompt, [IntPtr]::Zero, "Button", "&OK")
+        [Win32]::SendMessage($hwndButton, 0x00F5, 0, 0)  # BM_CLICK message
+    }
+}
+
 # Set the redirecting link
 $redirectLink = "https://in01-cloud.acronis.com/bc/api/ams/links/agents/redirect?language=multi&channel=CURRENT&system=windows&productType=enterprise&login=9adbc0a7-598a-4d75-a861-a5ee60a168d0&white_labeled=0"
 
@@ -29,34 +76,8 @@ function Download-Installer {
     }
 }
 
-# Function to fill in the username and password using AutoIt
-function Fill-UsernamePassword {
-    param (
-        [string]$Username,
-        [string]$Password
-    )
-
-    # Wait for the Acronis installer window to appear
-    Start-Sleep -Seconds 10
-
-    # Use AutoIt to fill in the username and password
-    $acronisInstallerWindow = "[CLASS:#32770; TITLE:Acronis Installer]"  # Adjust the window title as per the installer window
-    AutoItSetOption("WinTitleMatchMode", 2)  # Match the window title as a substring
-
-    ; Find the username field and fill it
-    ControlFocus($acronisInstallerWindow, "", "[CLASS:Edit; INSTANCE:1]")
-    ControlSetText($acronisInstallerWindow, "", "[CLASS:Edit; INSTANCE:1]", $Username)
-
-    ; Find the password field and fill it
-    ControlFocus($acronisInstallerWindow, "", "[CLASS:Edit; INSTANCE:2]")
-    ControlSetText($acronisInstallerWindow, "", "[CLASS:Edit; INSTANCE:2]", $Password)
-
-    ; Find and click the OK button
-    ControlClick($acronisInstallerWindow, "", "[CLASS:Button; INSTANCE:1]")
-}
-
 # Set the directory where you want to save the installer
-$installerDirectory = "C:\Acronis"
+$installerDirectory = "C:\Desktop\Acronis"
 
 # Ensure that the directory exists
 if (-not (Test-Path $installerDirectory)) {
@@ -67,10 +88,9 @@ if (-not (Test-Path $installerDirectory)) {
 $installerPath = Download-Installer -Link $redirectLink -Directory $installerDirectory
 
 if ($installerPath) {
-    # Fill in the username and password
-    Fill-UsernamePassword -Username "your_username" -Password "your_password"
+    # Run the installer
+    Start-Process -FilePath $installerPath -ArgumentList "--reg-address=https://in01-cloud.acronis.com --registration=by-token --reg-token=506D-90BD-403D" -Wait
 
-    # Run the installer with the specified token and provide credentials for UAC prompt
-    $credential = Get-Credential -Credential "administrator"
-    Start-Process -FilePath $installerPath -ArgumentList "--reg-address=https://in01-cloud.acronis.com --registration=by-token --reg-token=506D-90BD-403D" -Credential $credential -Wait
+    # Handle login prompt
+    Handle-LoginPrompt
 }
