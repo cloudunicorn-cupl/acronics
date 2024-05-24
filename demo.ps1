@@ -9,25 +9,14 @@ function Download-Installer {
     )
 
     try {
-        # Send a web request to follow the redirect
-        $response = Invoke-WebRequest -Uri $Link -MaximumRedirection 20 -ErrorAction Stop
+        # Create a WebClient object
+        $webClient = New-Object System.Net.WebClient
 
-        # Check if the response contains a redirect
-        if ($response.StatusCode -eq 302 -and $response.Headers.Location) {
-            # Extract the actual download link from the redirect response
-            $downloadLink = $response.Headers.Location
+        # Download the installer
+        $installerPath = Join-Path -Path $Directory -ChildPath "AcronisInstaller.exe"
+        $webClient.DownloadFile($Link, $installerPath)
 
-            # Set the path where you want to save the installer
-            $installerPath = Join-Path -Path $Directory -ChildPath (Split-Path $downloadLink -Leaf)
-
-            # Download the installer
-            Invoke-WebRequest -Uri $downloadLink -OutFile $installerPath -ErrorAction Stop
-
-            return $installerPath
-        } else {
-            Write-Host "Error: The redirect link did not lead to a download link."
-            return $null
-        }
+        return $installerPath
     } catch {
         Write-Host "Error downloading installer: $_"
         return $null
