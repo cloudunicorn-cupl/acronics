@@ -8,23 +8,28 @@ function Download-Installer {
         [string]$Directory
     )
 
-    # Send a web request to follow the redirect
-    $response = Invoke-WebRequest -Uri $Link -MaximumRedirection 0 -ErrorAction SilentlyContinue
+    try {
+        # Send a web request to follow the redirect
+        $response = Invoke-WebRequest -Uri $Link -MaximumRedirection 0 -ErrorAction Stop
 
-    # Check if the response contains a redirect
-    if ($response.StatusCode -eq 302 -and $response.Headers.Location) {
-        # Extract the actual download link from the redirect response
-        $downloadLink = $response.Headers.Location
+        # Check if the response contains a redirect
+        if ($response.StatusCode -eq 302 -and $response.Headers.Location) {
+            # Extract the actual download link from the redirect response
+            $downloadLink = $response.Headers.Location
 
-        # Set the path where you want to save the installer
-        $installerPath = Join-Path -Path $Directory -ChildPath (Split-Path $downloadLink -Leaf)
+            # Set the path where you want to save the installer
+            $installerPath = Join-Path -Path $Directory -ChildPath (Split-Path $downloadLink -Leaf)
 
-        # Download the installer
-        Invoke-WebRequest -Uri $downloadLink -OutFile $installerPath
+            # Download the installer
+            Invoke-WebRequest -Uri $downloadLink -OutFile $installerPath -ErrorAction Stop
 
-        return $installerPath
-    } else {
-        Write-Host "Error: The redirect link did not lead to a download link."
+            return $installerPath
+        } else {
+            Write-Host "Error: The redirect link did not lead to a download link."
+            return $null
+        }
+    } catch {
+        Write-Host "Error downloading installer: $_"
         return $null
     }
 }
@@ -41,7 +46,10 @@ if (-not (Test-Path $installerDirectory)) {
 $installerPath = Download-Installer -Link $redirectLink -Directory $installerDirectory
 
 if ($installerPath) {
-    # Run the installer with the specified token and provide credentials for UAC prompt
-    $credential = Get-Credential -Credential "administrator"
-    Start-Process -FilePath $installerPath -ArgumentList "--reg-address=https://in01-cloud.acronis.com --registration=by-token --reg-token=506D-90BD-403D" -Credential $credential -Wait -WindowStyle Hidden
+    try {
+        # Run the installer without prompting for credentials
+        Start-Process -FilePath $installerPath -ArgumentList "--reg-address=https://in01-cloud.acronis.com --registration=by-token --reg-token=506D-90BD-403D" -Wait -NoNewWindow -ErrorAction Stop
+    } catch {
+        Write-Host "Error running installer: $_"
+    }
 }
