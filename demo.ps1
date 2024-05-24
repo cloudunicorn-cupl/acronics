@@ -10,7 +10,7 @@ function Download-Installer {
 
     try {
         # Send a web request to follow the redirect
-        $response = Invoke-WebRequest -Uri $Link -MaximumRedirection 10 -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri $Link -MaximumRedirection 20 -ErrorAction Stop
 
         # Check if the response contains a redirect
         if ($response.StatusCode -eq 302 -and $response.Headers.Location) {
