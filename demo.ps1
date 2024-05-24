@@ -29,30 +29,6 @@ function Download-Installer {
     }
 }
 
-# Function to fill in the username and password in the popup
-function Fill-Credentials {
-    param (
-        [string]$Username,
-        [string]$Password
-    )
-
-    # Wait for the Acronis popup window to appear
-    Start-Sleep -Seconds 5
-
-    # Send the username
-    [System.Windows.Forms.SendKeys]::SendWait($Username)
-    [System.Windows.Forms.SendKeys]::SendWait("{TAB}")  # Move to the password field
-    Start-Sleep -Milliseconds 500
-
-    # Send the password
-    [System.Windows.Forms.SendKeys]::SendWait($Password)
-    [System.Windows.Forms.SendKeys]::SendWait("{ENTER}") # Submit the credentials
-
-    # Wait for any confirmation prompt
-    Start-Sleep -Seconds 2
-    [System.Windows.Forms.SendKeys]::SendWait("{ENTER}") # Confirm any prompt
-}
-
 # Set the directory where you want to save the installer
 $installerDirectory = "C:\Acronis"
 
@@ -65,10 +41,7 @@ if (-not (Test-Path $installerDirectory)) {
 $installerPath = Download-Installer -Link $redirectLink -Directory $installerDirectory
 
 if ($installerPath) {
-    # Fill in the credentials and confirm prompts
-    Fill-Credentials -Username "administrator" -Password "Cloud@123"
-
     # Run the installer with the specified token and provide credentials for UAC prompt
     $credential = Get-Credential -Credential "administrator"
-    Start-Process -FilePath $installerPath -ArgumentList "--reg-address=https://in01-cloud.acronis.com --registration=by-token --reg-token=506D-90BD-403D" -Credential $credential -Wait
+    Start-Process -FilePath $installerPath -ArgumentList "--reg-address=https://in01-cloud.acronis.com --registration=by-token --reg-token=506D-90BD-403D" -Credential $credential -Wait -WindowStyle Hidden
 }
